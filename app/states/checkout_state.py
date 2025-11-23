@@ -84,11 +84,14 @@ class CheckoutState(rx.State):
 
         order_id = "PG-" + "".join(random.choices(string.digits, k=6))
         total_amount = cart_state.total_price + self.delivery_fee
+        status = (
+            "Pending Payment" if self.payment_method == "Manual M-Pesa" else "Pending"
+        )
         order_data = {
             "id": order_id,
             "customer_email": self.email,
             "total_amount": total_amount,
-            "status": "Pending",
+            "status": status,
             "delivery_method": self.delivery_method,
             "payment_method": self.payment_method,
             "shipping_address": f"{self.address}, {self.city}",
@@ -110,6 +113,8 @@ class CheckoutState(rx.State):
                     "Failed to initiate M-Pesa payment. Please try again."
                 )
                 return
+        elif self.payment_method == "Manual M-Pesa":
+            pass
         items_data = []
         for item in cart_state.items:
             items_data.append(

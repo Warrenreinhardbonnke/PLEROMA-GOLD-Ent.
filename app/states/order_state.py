@@ -13,6 +13,7 @@ class Order(TypedDict):
     date: str
     status: str
     total: int
+    payment_method: str
     items: list[OrderItem]
 
 
@@ -44,6 +45,7 @@ class OrderState(rx.State):
                     "date": str(order["created_at"])[:10],
                     "status": order["status"],
                     "total": order["total_amount"],
+                    "payment_method": order.get("payment_method", ""),
                     "items": [
                         {
                             "name": i["product_name"],
@@ -54,7 +56,14 @@ class OrderState(rx.State):
                     ],
                 }
                 return mapped_order
-        return {"id": "", "date": "", "status": "", "total": 0, "items": []}
+        return {
+            "id": "",
+            "date": "",
+            "status": "",
+            "total": 0,
+            "payment_method": "",
+            "items": [],
+        }
 
     @rx.var
     def filtered_orders(self) -> list[Order]:
@@ -72,4 +81,4 @@ class OrderState(rx.State):
         for order in self.orders:
             if order["id"] == order_id:
                 return order
-        return Order(id="", date="", status="", total=0, items=[])
+        return Order(id="", date="", status="", total=0, payment_method="", items=[])

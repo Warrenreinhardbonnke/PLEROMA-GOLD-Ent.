@@ -163,6 +163,11 @@ def checkout_page() -> rx.Component:
                                         "M-Pesa", "M-Pesa (STK Push)", "smartphone"
                                     ),
                                     payment_option(
+                                        "Manual M-Pesa",
+                                        "Manual M-Pesa (Send Money)",
+                                        "smartphone",
+                                    ),
+                                    payment_option(
                                         "Card", "Credit / Debit Card", "credit-card"
                                     ),
                                     payment_option(
@@ -191,6 +196,60 @@ def checkout_page() -> rx.Component:
                                             class_name="mt-2 text-sm text-gray-500",
                                         ),
                                         class_name="mb-8 bg-[#F5DEB3]/20 p-4 rounded-lg border border-[#F5DEB3]",
+                                    ),
+                                ),
+                                rx.cond(
+                                    CheckoutState.payment_method == "Manual M-Pesa",
+                                    rx.el.div(
+                                        rx.el.h3(
+                                            "Payment Instructions",
+                                            class_name="text-sm font-bold text-[#8B4513] mb-2 uppercase tracking-wider",
+                                        ),
+                                        rx.el.div(
+                                            rx.el.p(
+                                                "Please send money to the following M-Pesa number:",
+                                                class_name="text-sm text-gray-600 mb-2",
+                                            ),
+                                            rx.el.div(
+                                                rx.el.span(
+                                                    "M-Pesa Number:",
+                                                    class_name="font-semibold text-gray-700",
+                                                ),
+                                                rx.el.span(
+                                                    "0794807479",
+                                                    class_name="ml-2 font-mono text-[#8B4513] font-bold",
+                                                ),
+                                                class_name="flex justify-between border-b border-[#8B4513]/10 py-1",
+                                            ),
+                                            rx.el.div(
+                                                rx.el.span(
+                                                    "Account Name:",
+                                                    class_name="font-semibold text-gray-700",
+                                                ),
+                                                rx.el.span(
+                                                    "Catherine Moraa",
+                                                    class_name="ml-2 font-mono text-[#8B4513]",
+                                                ),
+                                                class_name="flex justify-between border-b border-[#8B4513]/10 py-1",
+                                            ),
+                                            rx.el.div(
+                                                rx.el.span(
+                                                    "Reference:",
+                                                    class_name="font-semibold text-gray-700",
+                                                ),
+                                                rx.el.span(
+                                                    "Your Order ID (Generated next)",
+                                                    class_name="ml-2 font-mono text-[#8B4513]",
+                                                ),
+                                                class_name="flex justify-between py-1",
+                                            ),
+                                            class_name="bg-white/50 rounded p-3 mb-3",
+                                        ),
+                                        rx.el.p(
+                                            "Your order will be confirmed once payment is verified. Please proceed to place your order.",
+                                            class_name="text-xs text-gray-500 italic",
+                                        ),
+                                        class_name="mb-8 bg-[#FFB800]/10 p-5 rounded-lg border border-[#FFB800]/30",
                                     ),
                                 ),
                             ),
