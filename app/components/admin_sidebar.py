@@ -28,6 +28,7 @@ def admin_sidebar() -> rx.Component:
             sidebar_item("shopping-bag", "Orders", "/admin/orders"),
             sidebar_item("users", "Customers", "/admin/customers"),
             sidebar_item("bar-chart", "Reports", "/admin/reports"),
+            sidebar_item("book-open", "M-Pesa Guide", "/admin/mpesa-guide"),
             class_name="p-4 space-y-1",
         ),
         rx.el.div(

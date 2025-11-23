@@ -43,6 +43,9 @@ class MpesaService:
     def initiate_stk_push(
         cls, phone: str, amount: int, order_id: str
     ) -> Optional[dict]:
+        if not MpesaConfig.validate():
+            logging.error("M-Pesa configuration invalid. Aborting STK push.")
+            return None
         token = cls.get_access_token()
         if not token:
             return None
@@ -52,11 +55,12 @@ class MpesaService:
             formatted_phone = "254" + phone[1:]
         elif phone.startswith("+"):
             formatted_phone = phone[1:]
+        transaction_type = MpesaConfig.get_transaction_type()
         payload = {
             "BusinessShortCode": MpesaConfig.SHORTCODE,
             "Password": password,
             "Timestamp": timestamp,
-            "TransactionType": "CustomerPayBillOnline",
+            "TransactionType": transaction_type,
             "Amount": amount,
             "PartyA": formatted_phone,
             "PartyB": MpesaConfig.SHORTCODE,

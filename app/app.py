@@ -69,6 +69,7 @@ from app.pages.admin.products import admin_products_page
 from app.pages.admin.orders import admin_orders_page
 from app.pages.admin.customers import admin_customers_page
 from app.pages.admin.reports import admin_reports_page
+from app.pages.admin.mpesa_guide import admin_mpesa_guide_page
 from app.states.admin_state import AdminState
 from app.states.admin_product_state import AdminProductState
 from app.states.admin_order_state import AdminOrderState
@@ -80,3 +81,4 @@ app.add_page(
 app.add_page(admin_orders_page, route="/admin/orders", on_load=AdminOrderState.on_load)
 app.add_page(admin_customers_page, route="/admin/customers")
 app.add_page(admin_reports_page, route="/admin/reports")
+app.add_page(admin_mpesa_guide_page, route="/admin/mpesa-guide")
