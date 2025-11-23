@@ -15,6 +15,8 @@ class AdminOrder(TypedDict):
     total: int
     status: str
     items: str
+    payment_method: str
+    receipt_number: str
 
 
 from app.database.service import DatabaseService
@@ -24,6 +26,7 @@ class AdminOrderState(rx.State):
     filter_status: str = "All"
     status_options: list[str] = [
         "All",
+        "Paid",
         "Pending",
         "Processing",
         "Delivered",
@@ -44,6 +47,8 @@ class AdminOrderState(rx.State):
                     "total": o["total_amount"],
                     "status": o["status"],
                     "items": o.get("items_summary", "Unknown items"),
+                    "payment_method": o.get("payment_method") or "Unknown",
+                    "receipt_number": o.get("mpesa_receipt_number") or "-",
                 }
             )
 

@@ -28,13 +28,37 @@ def order_row(order: dict) -> rx.Component:
             class_name="px-6 py-4 whitespace-nowrap",
         ),
         rx.el.td(
+            rx.el.div(
+                rx.el.div(
+                    order["payment_method"],
+                    class_name="text-sm font-medium text-gray-900",
+                ),
+                rx.cond(
+                    order["receipt_number"] != "-",
+                    rx.el.div(
+                        order["receipt_number"],
+                        class_name="text-xs text-gray-500 font-mono",
+                    ),
+                ),
+                class_name="flex flex-col",
+            ),
+            class_name="px-6 py-4 whitespace-nowrap",
+        ),
+        rx.el.td(
             rx.match(
                 order["status"],
+                (
+                    "Paid",
+                    rx.el.span(
+                        "Paid",
+                        class_name="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800",
+                    ),
+                ),
                 (
                     "Delivered",
                     rx.el.span(
                         "Delivered",
-                        class_name="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800",
+                        class_name="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800 border border-gray-200",
                     ),
                 ),
                 (
@@ -67,6 +91,7 @@ def order_row(order: dict) -> rx.Component:
         ),
         rx.el.td(
             rx.el.select(
+                rx.el.option("Paid", value="Paid"),
                 rx.el.option("Pending", value="Pending"),
                 rx.el.option("Processing", value="Processing"),
                 rx.el.option("Delivered", value="Delivered"),
@@ -124,6 +149,10 @@ def orders_content() -> rx.Component:
                         ),
                         rx.el.th(
                             "Total",
+                            class_name="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider",
+                        ),
+                        rx.el.th(
+                            "Payment",
                             class_name="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider",
                         ),
                         rx.el.th(

@@ -24,7 +24,7 @@ async def mpesa_callback(request: Request):
                 DatabaseService.update_order_by_checkout_id(
                     checkout_request_id,
                     {
-                        "status": "Processing",
+                        "status": "Paid",
                         "payment_method": "M-Pesa",
                         "mpesa_receipt_number": receipt_number,
                     },
