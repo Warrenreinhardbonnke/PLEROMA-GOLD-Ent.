@@ -7,9 +7,9 @@ def seed_database():
     """Seed the database with initial data if empty."""
     print("Initializing Database Check...")
     if not DatabaseService.check_connection():
-        print("Cannot connect to database or tables missing.")
+        print("❌ Database check failed.")
         print(
-            "Please run 'python -m app.setup_database' to set up your database schema."
+            "If the tables are missing, please read SUPABASE_SETUP.md for manual setup instructions."
         )
         return
     print("Starting database seed...")

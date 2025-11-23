@@ -13,12 +13,23 @@ class DatabaseService:
         """Check if database connection is valid and tables exist."""
         client = DatabaseService.get_client()
         if not client:
+            logging.error("Supabase client is not initialized. Check your env vars.")
             return False
         try:
             client.table("products").select("count", count="exact", head=True).execute()
             return True
         except Exception as e:
-            logging.exception(f"Database check failed: {e}")
+            error_msg = str(e)
+            if (
+                "Could not find the table" in error_msg
+                or 'relation "public.products" does not exist' in error_msg
+            ):
+                logging.error("❌ CRITICAL: Database tables not found.")
+                logging.error(
+                    "👉 Please follow instructions in SUPABASE_SETUP.md to create tables in Supabase SQL Editor."
+                )
+            else:
+                logging.exception(f"Database check failed: {e}")
             return False
 
     @staticmethod

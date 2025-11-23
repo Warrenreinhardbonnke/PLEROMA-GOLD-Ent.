@@ -16,7 +16,23 @@ class DatabaseConfig:
 
     @classmethod
     def get_supabase_key(cls) -> Optional[str]:
-        return os.getenv("SUPABASE_KEY", cls.DEFAULT_KEY)
+        key = os.getenv("SUPABASE_ANON_KEY")
+        if key:
+            if key.startswith("ey"):
+                return key
+            logging.warning(
+                "SUPABASE_ANON_KEY provided but does not look like a valid JWT."
+            )
+        key = os.getenv("SUPABASE_KEY")
+        if key:
+            if key.startswith("ey"):
+                return key
+            else:
+                logging.warning(
+                    "SUPABASE_KEY found but does not look like a valid JWT (starts with 'ey'). It might be a database password. Ignoring it to prevent connection errors."
+                )
+        logging.info("Using default public Supabase anon key.")
+        return cls.DEFAULT_KEY
 
     @classmethod
     def get_database_url(cls) -> Optional[str]:
@@ -26,15 +42,22 @@ class DatabaseConfig:
             return url
         supabase_url = cls.get_supabase_url()
         db_password = os.getenv("SUPABASE_DB_PASSWORD")
-        if supabase_url and db_password and ("supabase.co" in supabase_url):
+        if supabase_url and db_password:
             try:
-                project_ref = supabase_url.split("//")[1].split(".")[0]
-                return f"postgresql://postgres:{db_password}@db.{project_ref}.supabase.co:5432/postgres"
-            except IndexError:
-                logging.exception(
-                    "Failed to parse Supabase URL for database connection"
-                )
-                return None
+                if "//" in supabase_url:
+                    project_ref = supabase_url.split("//")[1].split(".")[0]
+                else:
+                    project_ref = supabase_url.split(".")[0]
+                if project_ref:
+                    return f"postgresql://postgres:{db_password}@db.{project_ref}.supabase.co:5432/postgres"
+            except Exception as e:
+                logging.exception(f"Error constructing database URL: {e}")
+        env_url = os.getenv("SUPABASE_URL")
+        if env_url and env_url.startswith("postgresql://"):
+            return env_url
+        logging.warning(
+            "Could not construct database URL. Ensure SUPABASE_DB_PASSWORD is set."
+        )
         return None
 
     @classmethod

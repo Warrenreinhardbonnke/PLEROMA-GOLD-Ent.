@@ -14,11 +14,24 @@ def get_db_connection():
     """Establish a connection to the database using psycopg."""
     db_url = DatabaseConfig.get_database_url()
     if not db_url:
-        logging.error("DATABASE_URL not found in environment variables.")
+        logging.error("DATABASE_URL could not be determined.")
         logging.error(
-            "Please set DATABASE_URL or (SUPABASE_URL and SUPABASE_DB_PASSWORD)."
+            "Please ensure SUPABASE_DB_PASSWORD is set in your environment variables."
         )
         return None
+    safe_url = db_url
+    try:
+        if "@" in safe_url:
+            parts = safe_url.split("@")
+            if "://" in parts[0]:
+                scheme_creds = parts[0].split("://")
+                if ":" in scheme_creds[1]:
+                    user = scheme_creds[1].split(":")[0]
+                    safe_url = f"{scheme_creds[0]}://{user}:****@{parts[1]}"
+    except Exception as e:
+        logging.exception(f"Error masking database URL: {e}")
+        safe_url = "(URL hidden due to parsing error)"
+    logging.info(f"Attempting to connect to: {safe_url}")
     try:
         logging.info("Connecting to database...")
         conn = psycopg.connect(db_url, autocommit=True)
