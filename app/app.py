@@ -17,6 +17,12 @@ from app.pages.contact import contact_page
 from app.pages.about import about_page
 from app.states.product_state import ProductState
 from app.states.order_state import OrderState
+from app.api.mpesa_callback import mpesa_callback
+
+
+def mpesa_api_routes(api):
+    api.add_route("/api/mpesa/callback", mpesa_callback, methods=["POST"])
+    return api
 
 
 def index() -> rx.Component:
@@ -30,6 +36,7 @@ def index() -> rx.Component:
 
 app = rx.App(
     theme=rx.theme(appearance="light"),
+    api_transformer=mpesa_api_routes,
     head_components=[
         rx.el.link(rel="preconnect", href="https://fonts.googleapis.com"),
         rx.el.link(rel="preconnect", href="https://fonts.gstatic.com", cross_origin=""),

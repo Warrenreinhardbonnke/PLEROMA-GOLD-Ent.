@@ -226,6 +226,20 @@ class DatabaseService:
             return False
 
     @staticmethod
+    def update_order_by_checkout_id(checkout_id: str, updates: dict) -> bool:
+        client = DatabaseService.get_client()
+        if not client:
+            return False
+        try:
+            client.table("orders").update(updates).eq(
+                "checkout_request_id", checkout_id
+            ).execute()
+            return True
+        except Exception as e:
+            logging.exception(f"Error updating order by checkout_id {checkout_id}: {e}")
+            return False
+
+    @staticmethod
     def get_dashboard_stats() -> dict:
         client = DatabaseService.get_client()
         if not client:

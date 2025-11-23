@@ -34,6 +34,8 @@ CREATE TABLE IF NOT EXISTS orders (
     payment_method TEXT,
     shipping_address TEXT,
     contact_phone TEXT,
+    checkout_request_id TEXT,
+    mpesa_receipt_number TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 

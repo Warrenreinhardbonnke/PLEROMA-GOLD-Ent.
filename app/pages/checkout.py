@@ -170,6 +170,29 @@ def checkout_page() -> rx.Component:
                                     ),
                                     class_name="mb-8",
                                 ),
+                                rx.cond(
+                                    CheckoutState.payment_method == "M-Pesa",
+                                    rx.el.div(
+                                        rx.el.label(
+                                            "M-Pesa Phone Number",
+                                            class_name="block text-sm font-medium text-gray-700 mb-1",
+                                        ),
+                                        rx.el.input(
+                                            type="tel",
+                                            placeholder="e.g. 0712345678",
+                                            default_value=CheckoutState.mpesa_phone,
+                                            on_change=lambda v: CheckoutState.set_field(
+                                                "mpesa_phone", v
+                                            ),
+                                            class_name="block w-full shadow-sm focus:ring-[#DAA520] focus:border-[#DAA520] sm:text-sm border-gray-300 rounded-md px-4 py-3 border",
+                                        ),
+                                        rx.el.p(
+                                            "You will receive a prompt on this number to enter your M-Pesa PIN.",
+                                            class_name="mt-2 text-sm text-gray-500",
+                                        ),
+                                        class_name="mb-8 bg-[#F5DEB3]/20 p-4 rounded-lg border border-[#F5DEB3]",
+                                    ),
+                                ),
                             ),
                             class_name="lg:col-span-7",
                         ),
@@ -260,9 +283,20 @@ def checkout_page() -> rx.Component:
                                         class_name="mt-4",
                                     ),
                                     rx.el.button(
-                                        "Place Order",
+                                        rx.cond(
+                                            CheckoutState.is_processing_payment,
+                                            rx.el.div(
+                                                rx.spinner(color="white", size="2"),
+                                                rx.el.span(
+                                                    "Processing...", class_name="ml-2"
+                                                ),
+                                                class_name="flex items-center justify-center",
+                                            ),
+                                            "Place Order",
+                                        ),
                                         on_click=CheckoutState.place_order,
-                                        class_name="w-full mt-6 bg-[#8B4513] border border-transparent rounded-md shadow-sm py-3 px-4 text-base font-medium text-white hover:bg-[#6d360f] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#8B4513]",
+                                        disabled=CheckoutState.is_processing_payment,
+                                        class_name="w-full mt-6 bg-[#8B4513] border border-transparent rounded-md shadow-sm py-3 px-4 text-base font-medium text-white hover:bg-[#6d360f] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#8B4513] disabled:opacity-50 disabled:cursor-not-allowed",
                                     ),
                                     class_name="bg-gray-50 rounded-lg px-4 py-6 sm:p-6 lg:p-8",
                                 ),
