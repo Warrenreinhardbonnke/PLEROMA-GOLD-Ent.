@@ -17,6 +17,8 @@ class SupabaseDB:
                 return None
             try:
                 cls._client = create_client(url, key)
+                if cls._client:
+                    logging.info(f"Supabase client initialized for {url}")
             except Exception as e:
                 logging.exception(f"Failed to initialize Supabase client: {e}")
                 return None

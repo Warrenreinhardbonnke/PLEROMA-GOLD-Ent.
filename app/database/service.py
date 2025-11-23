@@ -9,6 +9,19 @@ class DatabaseService:
         return SupabaseDB.get_client()
 
     @staticmethod
+    def check_connection() -> bool:
+        """Check if database connection is valid and tables exist."""
+        client = DatabaseService.get_client()
+        if not client:
+            return False
+        try:
+            client.table("products").select("count", count="exact", head=True).execute()
+            return True
+        except Exception as e:
+            logging.exception(f"Database check failed: {e}")
+            return False
+
+    @staticmethod
     def get_all_products() -> list[dict]:
         client = DatabaseService.get_client()
         if not client:

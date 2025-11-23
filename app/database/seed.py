@@ -6,6 +6,12 @@ from app.data import products_data
 def seed_database():
     """Seed the database with initial data if empty."""
     print("Initializing Database Check...")
+    if not DatabaseService.check_connection():
+        print("Cannot connect to database or tables missing.")
+        print(
+            "Please run 'python -m app.setup_database' to set up your database schema."
+        )
+        return
     print("Starting database seed...")
     existing_products = DatabaseService.get_all_products()
     if existing_products and len(existing_products) > 0:
