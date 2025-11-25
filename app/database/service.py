@@ -1,280 +1,307 @@
 import logging
 from typing import Optional
-from app.database.client import SupabaseDB
+import reflex as rx
+from sqlalchemy import text
+from app.database.schema import CREATE_TABLES_SQL
 
 
 class DatabaseService:
     @staticmethod
-    def get_client():
-        return SupabaseDB.get_client()
-
-    @staticmethod
-    def check_connection() -> bool:
-        """Check if database connection is valid and tables exist."""
-        client = DatabaseService.get_client()
-        if not client:
-            logging.error("Supabase client is not initialized. Check your env vars.")
-            return False
+    async def initialize_tables():
+        """Initialize database tables via raw SQL."""
         try:
-            client.table("products").select("count", count="exact", head=True).execute()
+            async with rx.asession() as session:
+                await session.execute(text("PRAGMA foreign_keys = ON;"))
+                statements = CREATE_TABLES_SQL.split(";")
+                for stmt in statements:
+                    if stmt.strip():
+                        await session.execute(text(stmt))
+                await session.commit()
+            logging.info("Database tables initialized.")
             return True
         except Exception as e:
-            error_msg = str(e)
-            if (
-                "Could not find the table" in error_msg
-                or 'relation "public.products" does not exist' in error_msg
-            ):
-                logging.error("❌ CRITICAL: Database tables not found.")
-                logging.error(
-                    "👉 Please follow instructions in SUPABASE_SETUP.md to create tables in Supabase SQL Editor."
-                )
-            else:
-                logging.exception(f"Database check failed: {e}")
+            logging.exception(f"Failed to initialize tables: {e}")
             return False
 
     @staticmethod
-    def get_all_products() -> list[dict]:
-        client = DatabaseService.get_client()
-        if not client:
-            return []
+    async def check_connection() -> bool:
+        """Check if database connection is valid and tables exist."""
         try:
-            response = client.table("products").select("*").order("id").execute()
-            return response.data
+            async with rx.asession() as session:
+                await session.execute(text("SELECT 1"))
+                result = await session.execute(
+                    text(
+                        "SELECT name FROM sqlite_master WHERE type='table' AND name='products'"
+                    )
+                )
+                return result.fetchone() is not None
         except Exception as e:
-            logging.exception(f"Error fetching products: {e}")
-            return []
+            logging.exception(f"Database check failed: {e}")
+            return False
 
     @staticmethod
-    def get_product_by_id(product_id: int) -> Optional[dict]:
-        client = DatabaseService.get_client()
-        if not client:
-            return None
+    async def get_all_products() -> list[dict]:
         try:
-            response = (
-                client.table("products")
-                .select("*")
-                .eq("id", product_id)
-                .single()
-                .execute()
-            )
-            return response.data
+            async with rx.asession() as session:
+                result = await session.execute(
+                    text("SELECT * FROM products ORDER BY id")
+                )
+                return [dict(row._mapping) for row in result.fetchall()]
         except Exception as e:
-            logging.exception(f"Error fetching product {product_id}: {e}")
+            logging.exception(f"DB Error fetching products: {e}")
+            from app.data import products_data
+
+            return products_data
+
+    @staticmethod
+    async def get_product_by_id(product_id: int) -> Optional[dict]:
+        try:
+            async with rx.asession() as session:
+                result = await session.execute(
+                    text("SELECT * FROM products WHERE id = :id"), {"id": product_id}
+                )
+                row = result.fetchone()
+                return dict(row._mapping) if row else None
+        except Exception as e:
+            logging.exception(f"DB Error fetching product {product_id}: {e}")
+            from app.data import products_data
+
+            for p in products_data:
+                if p["id"] == product_id:
+                    return p
             return None
 
     @staticmethod
-    def create_product(product_data: dict) -> Optional[dict]:
-        client = DatabaseService.get_client()
-        if not client:
-            return None
+    async def create_product(product_data: dict) -> Optional[dict]:
         try:
-            response = client.table("products").insert(product_data).execute()
-            return response.data[0] if response.data else None
+            async with rx.asession() as session:
+                columns = ", ".join(product_data.keys())
+                placeholders = ", ".join((f":{k}" for k in product_data.keys()))
+                query = text(
+                    f"INSERT INTO products ({columns}) VALUES ({placeholders}) RETURNING *"
+                )
+                result = await session.execute(query, product_data)
+                await session.commit()
+                row = result.fetchone()
+                return dict(row._mapping) if row else None
         except Exception as e:
             logging.exception(f"Error creating product: {e}")
             return None
 
     @staticmethod
-    def update_product(product_id: int, updates: dict) -> Optional[dict]:
-        client = DatabaseService.get_client()
-        if not client:
-            return None
+    async def update_product(product_id: int, updates: dict) -> Optional[dict]:
         try:
-            response = (
-                client.table("products").update(updates).eq("id", product_id).execute()
-            )
-            return response.data[0] if response.data else None
+            if not updates:
+                return await DatabaseService.get_product_by_id(product_id)
+            set_clause = ", ".join((f"{k} = :{k}" for k in updates.keys()))
+            params = {**updates, "id": product_id}
+            async with rx.asession() as session:
+                result = await session.execute(
+                    text(
+                        f"UPDATE products SET {set_clause} WHERE id = :id RETURNING *"
+                    ),
+                    params,
+                )
+                await session.commit()
+                row = result.fetchone()
+                return dict(row._mapping) if row else None
         except Exception as e:
             logging.exception(f"Error updating product {product_id}: {e}")
             return None
 
     @staticmethod
-    def delete_product(product_id: int) -> bool:
-        client = DatabaseService.get_client()
-        if not client:
-            return False
+    async def delete_product(product_id: int) -> bool:
         try:
-            client.table("products").delete().eq("id", product_id).execute()
+            async with rx.asession() as session:
+                await session.execute(
+                    text("DELETE FROM products WHERE id = :id"), {"id": product_id}
+                )
+                await session.commit()
             return True
         except Exception as e:
             logging.exception(f"Error deleting product {product_id}: {e}")
             return False
 
     @staticmethod
-    def get_customer_by_email(email: str) -> Optional[dict]:
-        client = DatabaseService.get_client()
-        if not client:
-            return None
+    async def get_customer_by_email(email: str) -> Optional[dict]:
         try:
-            response = (
-                client.table("customers")
-                .select("*")
-                .eq("email", email)
-                .maybe_single()
-                .execute()
-            )
-            return response.data
+            async with rx.asession() as session:
+                result = await session.execute(
+                    text("SELECT * FROM customers WHERE email = :email"),
+                    {"email": email},
+                )
+                row = result.fetchone()
+                return dict(row._mapping) if row else None
         except Exception as e:
             logging.exception(f"Error fetching customer {email}: {e}")
             return None
 
     @staticmethod
-    def create_customer(customer_data: dict) -> Optional[dict]:
-        client = DatabaseService.get_client()
-        if not client:
-            return None
+    async def create_customer(customer_data: dict) -> Optional[dict]:
         try:
-            response = client.table("customers").insert(customer_data).execute()
-            return response.data[0] if response.data else None
+            async with rx.asession() as session:
+                columns = ", ".join(customer_data.keys())
+                placeholders = ", ".join((f":{k}" for k in customer_data.keys()))
+                result = await session.execute(
+                    text(
+                        f"INSERT INTO customers ({columns}) VALUES ({placeholders}) RETURNING *"
+                    ),
+                    customer_data,
+                )
+                await session.commit()
+                row = result.fetchone()
+                return dict(row._mapping) if row else None
         except Exception as e:
             logging.exception(f"Error creating customer: {e}")
             return None
 
     @staticmethod
-    def create_order(order_data: dict, items: list[dict]) -> Optional[dict]:
-        client = DatabaseService.get_client()
-        if not client:
-            return None
+    async def create_order(order_data: dict, items: list[dict]) -> Optional[dict]:
         try:
-            order_res = client.table("orders").insert(order_data).execute()
-            if not order_res.data:
-                raise Exception("Failed to create order record")
-            order = order_res.data[0]
-            order_id = order["id"]
-            items_data = []
-            for item in items:
-                items_data.append(
-                    {
-                        "order_id": order_id,
-                        "product_id": item.get("product_id"),
-                        "product_name": item.get("name"),
-                        "quantity": item.get("quantity"),
-                        "price": item.get("price"),
-                        "image": item.get("image"),
-                    }
+            async with rx.asession() as session:
+                columns = ", ".join(order_data.keys())
+                placeholders = ", ".join((f":{k}" for k in order_data.keys()))
+                order_res = await session.execute(
+                    text(
+                        f"INSERT INTO orders ({columns}) VALUES ({placeholders}) RETURNING *"
+                    ),
+                    order_data,
                 )
-            if items_data:
-                client.table("order_items").insert(items_data).execute()
-            return order
+                order_row = order_res.fetchone()
+                order = dict(order_row._mapping) if order_row else order_data
+                if items:
+                    for item in items:
+                        item_data = {
+                            "order_id": order["id"],
+                            "product_id": item.get("product_id"),
+                            "product_name": item.get("product_name")
+                            or item.get("name"),
+                            "quantity": item.get("quantity"),
+                            "price": item.get("price"),
+                            "image": item.get("image"),
+                        }
+                        cols = ", ".join(item_data.keys())
+                        vals = ", ".join((f":{k}" for k in item_data.keys()))
+                        await session.execute(
+                            text(f"INSERT INTO order_items ({cols}) VALUES ({vals})"),
+                            item_data,
+                        )
+                await session.commit()
+                return order
         except Exception as e:
-            logging.exception(f"Failed to create order: {e}")
-            return None
+            logging.exception(f"Failed to create order in DB: {e}")
+            return order_data
 
     @staticmethod
-    def get_order_items(order_id: str) -> list[dict]:
-        client = DatabaseService.get_client()
-        if not client:
-            return []
+    async def get_order_items(order_id: str) -> list[dict]:
         try:
-            response = (
-                client.table("order_items")
-                .select("*")
-                .eq("order_id", order_id)
-                .execute()
-            )
-            return response.data
+            async with rx.asession() as session:
+                result = await session.execute(
+                    text("SELECT * FROM order_items WHERE order_id = :order_id"),
+                    {"order_id": order_id},
+                )
+                return [dict(row._mapping) for row in result.fetchall()]
         except Exception as e:
             logging.exception(f"Error fetching items for order {order_id}: {e}")
             return []
 
     @staticmethod
-    def get_orders_by_user(user_email: str) -> list[dict]:
-        client = DatabaseService.get_client()
-        if not client:
-            return []
+    async def get_orders_by_user(user_email: str) -> list[dict]:
         try:
-            response = (
-                client.table("orders")
-                .select("*, order_items(*)")
-                .eq("customer_email", user_email)
-                .order("created_at", desc=True)
-                .execute()
-            )
-            orders = response.data
-            for order in orders:
-                order["items"] = order.get("order_items", [])
-            return orders
+            async with rx.asession() as session:
+                orders_res = await session.execute(
+                    text(
+                        "SELECT * FROM orders WHERE customer_email = :email ORDER BY created_at DESC"
+                    ),
+                    {"email": user_email},
+                )
+                orders = [dict(row._mapping) for row in orders_res.fetchall()]
+                for order in orders:
+                    items_res = await session.execute(
+                        text("SELECT * FROM order_items WHERE order_id = :oid"),
+                        {"oid": order["id"]},
+                    )
+                    order["items"] = [dict(r._mapping) for r in items_res.fetchall()]
+                return orders
         except Exception as e:
             logging.exception(f"Error fetching orders for {user_email}: {e}")
             return []
 
     @staticmethod
-    def get_all_orders() -> list[dict]:
-        client = DatabaseService.get_client()
-        if not client:
-            return []
+    async def get_all_orders() -> list[dict]:
         try:
-            response = (
-                client.table("orders")
-                .select("*, order_items(*)")
-                .order("created_at", desc=True)
-                .execute()
-            )
-            orders = response.data
-            for order in orders:
-                items = order.get("order_items", [])
-                order["items_summary"] = ", ".join(
-                    [f"{i['quantity']}x {i['product_name']}" for i in items]
+            async with rx.asession() as session:
+                orders_res = await session.execute(
+                    text("SELECT * FROM orders ORDER BY created_at DESC")
                 )
-                order["items_count"] = sum((i["quantity"] for i in items))
-            return orders
+                orders = [dict(row._mapping) for row in orders_res.fetchall()]
+                for order in orders:
+                    items_res = await session.execute(
+                        text("SELECT * FROM order_items WHERE order_id = :oid"),
+                        {"oid": order["id"]},
+                    )
+                    items = [dict(r._mapping) for r in items_res.fetchall()]
+                    order["items_summary"] = ", ".join(
+                        [f"{i['quantity']}x {i['product_name']}" for i in items]
+                    )
+                    order["items_count"] = sum((i["quantity"] for i in items))
+                    order["order_items"] = items
+                return orders
         except Exception as e:
             logging.exception(f"Error fetching all orders: {e}")
             return []
 
     @staticmethod
-    def update_order_status(order_id: str, status: str) -> bool:
-        client = DatabaseService.get_client()
-        if not client:
-            return False
+    async def update_order_status(order_id: str, status: str) -> bool:
         try:
-            client.table("orders").update({"status": status}).eq(
-                "id", order_id
-            ).execute()
+            async with rx.asession() as session:
+                await session.execute(
+                    text("UPDATE orders SET status = :status WHERE id = :id"),
+                    {"status": status, "id": order_id},
+                )
+                await session.commit()
             return True
         except Exception as e:
             logging.exception(f"Error updating order {order_id}: {e}")
             return False
 
     @staticmethod
-    def update_order_by_checkout_id(checkout_id: str, updates: dict) -> bool:
-        client = DatabaseService.get_client()
-        if not client:
-            return False
+    async def update_order_by_checkout_id(checkout_id: str, updates: dict) -> bool:
         try:
-            client.table("orders").update(updates).eq(
-                "checkout_request_id", checkout_id
-            ).execute()
+            if not updates:
+                return True
+            set_clause = ", ".join((f"{k} = :{k}" for k in updates.keys()))
+            params = {**updates, "cid": checkout_id}
+            async with rx.asession() as session:
+                await session.execute(
+                    text(
+                        f"UPDATE orders SET {set_clause} WHERE checkout_request_id = :cid"
+                    ),
+                    params,
+                )
+                await session.commit()
             return True
         except Exception as e:
             logging.exception(f"Error updating order by checkout_id {checkout_id}: {e}")
             return False
 
     @staticmethod
-    def get_dashboard_stats() -> dict:
-        client = DatabaseService.get_client()
-        if not client:
-            return {"revenue": 0, "orders": 0, "customers": 0}
+    async def get_dashboard_stats() -> dict:
         try:
-            orders_count = (
-                client.table("orders")
-                .select("*", count="exact", head=True)
-                .execute()
-                .count
-            )
-            customers_count = (
-                client.table("customers")
-                .select("*", count="exact", head=True)
-                .execute()
-                .count
-            )
-            revenue_data = client.table("orders").select("total_amount").execute()
-            total_revenue = sum((item["total_amount"] for item in revenue_data.data))
-            return {
-                "revenue": total_revenue,
-                "orders": orders_count or 0,
-                "customers": customers_count or 0,
-            }
+            async with rx.asession() as session:
+                orders_res = await session.execute(text("SELECT count(*) FROM orders"))
+                orders_count = orders_res.scalar() or 0
+                cust_res = await session.execute(text("SELECT count(*) FROM customers"))
+                customers_count = cust_res.scalar() or 0
+                rev_res = await session.execute(
+                    text("SELECT sum(total_amount) FROM orders")
+                )
+                total_revenue = rev_res.scalar() or 0
+                return {
+                    "revenue": total_revenue,
+                    "orders": orders_count,
+                    "customers": customers_count,
+                }
         except Exception as e:
             logging.exception(f"Error fetching stats: {e}")
             return {"revenue": 0, "orders": 0, "customers": 0}

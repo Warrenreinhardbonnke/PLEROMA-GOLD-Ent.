@@ -29,17 +29,17 @@ class OrderState(rx.State):
         pass
 
     @rx.var
-    def current_order(self) -> Order:
+    async def current_order(self) -> Order:
         order_id = self.router.page.params.get("order_id", "")
         if not order_id:
             return {"id": "", "date": "", "status": "", "total": 0, "items": []}
         for order in self.orders:
             if order["id"] == order_id:
                 return order
-        all_orders = DatabaseService.get_all_orders()
+        all_orders = await DatabaseService.get_all_orders()
         for order in all_orders:
             if order["id"] == order_id:
-                items = DatabaseService.get_order_items(order_id)
+                items = await DatabaseService.get_order_items(order_id)
                 mapped_order = {
                     "id": order["id"],
                     "date": str(order["created_at"])[:10],

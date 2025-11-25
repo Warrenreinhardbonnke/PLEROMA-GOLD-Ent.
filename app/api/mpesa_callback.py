@@ -21,7 +21,7 @@ async def mpesa_callback(request: Request):
                 None,
             )
             if checkout_request_id:
-                DatabaseService.update_order_by_checkout_id(
+                await DatabaseService.update_order_by_checkout_id(
                     checkout_request_id,
                     {
                         "status": "Paid",
@@ -33,7 +33,7 @@ async def mpesa_callback(request: Request):
                     f"Order updated for CheckoutRequestID: {checkout_request_id}"
                 )
         elif checkout_request_id:
-            DatabaseService.update_order_by_checkout_id(
+            await DatabaseService.update_order_by_checkout_id(
                 checkout_request_id, {"status": "Payment Failed"}
             )
             logging.warning(

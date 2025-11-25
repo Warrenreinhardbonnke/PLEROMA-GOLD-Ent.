@@ -17,6 +17,7 @@ from app.pages.contact import contact_page
 from app.pages.about import about_page
 from app.states.product_state import ProductState
 from app.states.order_state import OrderState
+from app.states.startup_state import StartupState
 from app.api.mpesa_callback import mpesa_callback
 
 
@@ -46,7 +47,7 @@ app = rx.App(
         ),
     ],
 )
-app.add_page(index, route="/")
+app.add_page(index, route="/", on_load=StartupState.initialize_app)
 app.add_page(products_page, route="/products", on_load=ProductState.on_load)
 app.add_page(
     product_detail_page,

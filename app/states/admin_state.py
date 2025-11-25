@@ -24,8 +24,8 @@ class AdminState(rx.State):
     growth_rate: int = 12
 
     @rx.event
-    def on_load(self):
-        stats = DatabaseService.get_dashboard_stats()
+    async def on_load(self):
+        stats = await DatabaseService.get_dashboard_stats()
         self.total_revenue = int(stats.get("revenue", 0))
         self.total_orders = int(stats.get("orders", 0))
         self.total_customers = int(stats.get("customers", 0))

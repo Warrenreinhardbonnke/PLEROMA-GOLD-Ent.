@@ -126,7 +126,7 @@ class CheckoutState(rx.State):
                     "image": item.get("image", ""),
                 }
             )
-        result = DatabaseService.create_order(order_data, items_data)
+        result = await DatabaseService.create_order(order_data, items_data)
         self.is_processing_payment = False
         if result:
             cart_state.items = []

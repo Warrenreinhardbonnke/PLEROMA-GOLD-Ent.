@@ -26,11 +26,10 @@ class ProductState(rx.State):
     size_options: list[str] = ["250g", "500g", "1kg"]
 
     @rx.event
-    def on_load(self):
+    async def on_load(self):
         """Initialize DB and fetch products."""
         try:
-            seed_database()
-            db_products = DatabaseService.get_all_products()
+            db_products = await DatabaseService.get_all_products()
             if db_products:
                 self.products = db_products
         except Exception as e:
