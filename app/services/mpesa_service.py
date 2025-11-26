@@ -25,6 +25,10 @@ class MpesaService:
             ).decode()
             headers = {"Authorization": f"Basic {auth}"}
             response = requests.get(url, headers=headers, timeout=30)
+            if response.status_code != 200:
+                logging.error(
+                    f"M-Pesa Auth Failed [{response.status_code}]: {response.text}"
+                )
             response.raise_for_status()
             data = response.json()
             cls._access_token = data["access_token"]
@@ -52,6 +56,9 @@ class MpesaService:
         if not MpesaConfig.validate():
             logging.error("M-Pesa configuration invalid. Aborting STK push.")
             return None
+        logging.info(
+            f"Initiating M-Pesa STK Push ({MpesaConfig.get_transaction_type()}) for Order {order_id} to {phone}"
+        )
         token = cls.get_access_token()
         if not token:
             logging.error("Failed to obtain M-Pesa access token for STK push.")

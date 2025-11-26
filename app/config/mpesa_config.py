@@ -12,18 +12,19 @@ class MpesaConfig:
     FOR A COMPLETE SETUP GUIDE, REFER TO `MPESA_SETUP_GUIDE.md` IN THE ROOT DIRECTORY.
     """
 
-    CONSUMER_KEY = os.getenv("MPESA_CONSUMER_KEY", "sandbox_key")
-    CONSUMER_SECRET = os.getenv("MPESA_CONSUMER_SECRET", "sandbox_secret")
-    SHORTCODE = os.getenv("MPESA_SHORTCODE", "174379")
+    CONSUMER_KEY = os.getenv("MPESA_CONSUMER_KEY", "sandbox_key").strip()
+    CONSUMER_SECRET = os.getenv("MPESA_CONSUMER_SECRET", "sandbox_secret").strip()
+    _raw_shortcode = os.getenv("MPESA_SHORTCODE", "174379")
+    SHORTCODE = _raw_shortcode.replace(" ", "").strip() if _raw_shortcode else ""
     PASSKEY = os.getenv(
         "MPESA_PASSKEY",
         "bfb279f9aa9bdbcf158e97dd71a467cd2e0c893059b10f78e6b72ada1ed2c919",
-    )
-    ACCOUNT_TYPE = os.getenv("MPESA_ACCOUNT_TYPE", "Paybill")
-    ENVIRONMENT = os.getenv("MPESA_ENVIRONMENT", "sandbox")
+    ).strip()
+    ACCOUNT_TYPE = os.getenv("MPESA_ACCOUNT_TYPE", "Paybill").strip()
+    ENVIRONMENT = os.getenv("MPESA_ENVIRONMENT", "sandbox").strip().lower()
     CALLBACK_URL = os.getenv(
         "MPESA_CALLBACK_URL", "https://example.com/api/mpesa/callback"
-    )
+    ).strip()
 
     @classmethod
     def get_base_url(cls):
@@ -62,6 +63,10 @@ class MpesaConfig:
             missing_configs.append("MPESA_SHORTCODE")
         if not cls.PASSKEY:
             missing_configs.append("MPESA_PASSKEY")
+        if cls.PASSKEY and len(cls.PASSKEY) < 20 and (cls.ENVIRONMENT == "sandbox"):
+            logging.warning(
+                f"MPESA_PASSKEY seems unusually short ({len(cls.PASSKEY)} chars). Ensure it is the correct StkPush Passkey, not the portal password."
+            )
         if missing_configs:
             error_msg = f"CRITICAL: Missing M-Pesa Configurations: {', '.join(missing_configs)}. Payments will fail. See MPESA_SETUP_GUIDE.md"
             logging.error(error_msg)
