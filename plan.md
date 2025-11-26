@@ -54,19 +54,24 @@
 - [x] Set up database initialization script
 - [x] Verify all database operations working
 
-## Phase 8: M-Pesa Payment Integration ✅
-- [x] M-Pesa configuration system
+## Phase 8: M-Pesa Payment Integration (Till Number) ✅
+- [x] M-Pesa configuration system (supports Till and Paybill)
 - [x] STK Push implementation
 - [x] Payment callback handling
 - [x] Order status updates from M-Pesa
 - [x] Manual M-Pesa payment option
 - [x] Payment verification
 - [x] M-Pesa setup guide documentation
+- [ ] **Configure Till Number credentials** (In Progress)
+  - [ ] Add Till Number (MPESA_SHORTCODE) to environment
+  - [ ] Add Till Passkey to environment
+  - [ ] Set MPESA_ACCOUNT_TYPE=Till
+  - [ ] Set MPESA_CALLBACK_URL with deployed domain
 
 ## Phase 9: UI Verification & Testing
 - [ ] Test product browsing with database
 - [ ] Test cart operations and checkout flow
-- [ ] Test M-Pesa payment (sandbox)
+- [ ] Test M-Pesa Till Number payment (sandbox)
 - [ ] Test admin product management
 - [ ] Test admin order updates
 - [ ] Test error handling and fallbacks
@@ -74,13 +79,15 @@
 
 ---
 
-**Current Status:** Phase 8 Complete - Backend Fixed ✅
-**Next Steps:** UI Testing and Verification
+**Current Status:** Phase 8 - Configuring Till Number Integration
+**Next Steps:** Complete Till Number environment setup, then UI Testing
 
 ## Notes
 - ✅ **Backend fully operational** - Using local SQLite database
 - ✅ **9 products seeded** - Product catalog ready
 - ✅ **Database service working** - All CRUD operations functional
-- ✅ **M-Pesa integration ready** - Ready for testing with sandbox credentials
+- 🔄 **M-Pesa Till Number Setup** - Awaiting Till credentials (Shortcode & Passkey)
+- 📱 **Account Type**: Lipa na M-Pesa Pochi La Biashara (Till Number)
+- 🧪 **Test Phone**: 0702472946
 - ⚠️ **PostgreSQL errors in logs are expected** - Can be safely ignored (app uses SQLite)
 - 📄 Run `python app/setup_database.py` to initialize database (done automatically on first load)
