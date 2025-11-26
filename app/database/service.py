@@ -30,7 +30,7 @@ class DatabaseService:
                 await session.execute(text("SELECT 1"))
                 result = await session.execute(
                     text(
-                        "SELECT name FROM sqlite_master WHERE type='table' AND name='products'"
+                        "SELECT table_name FROM information_schema.tables WHERE table_name = 'products'"
                     )
                 )
                 return result.fetchone() is not None
@@ -112,7 +112,6 @@ class DatabaseService:
     async def delete_product(product_id: int) -> bool:
         try:
             async with rx.asession() as session:
-                await session.execute(text("PRAGMA foreign_keys = ON;"))
                 await session.execute(
                     text("DELETE FROM products WHERE id = :id"), {"id": product_id}
                 )
