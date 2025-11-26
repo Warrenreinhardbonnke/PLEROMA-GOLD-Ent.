@@ -11,7 +11,7 @@ def setup():
     print("""
 --- PLEROMA GOLD DATABASE SETUP ---
 """)
-    print("Initializing Local SQLite Database (reflex.db)...")
+    print("Initializing Database (checking connection to SQLite)...")
     try:
         asyncio.run(seed_database())
         print("""

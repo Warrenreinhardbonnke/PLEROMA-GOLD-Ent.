@@ -9,17 +9,18 @@ from app.database.seed import seed_database
 
 async def verify():
     print("🔍 Verifying Database Configuration...")
-    print("1. Initializing Tables...")
+    print("1. Checking Connection...")
+    if await DatabaseService.check_connection():
+        print("   ✅ Connection Successful (Tables exist)")
+    else:
+        print(
+            "   ℹ️  Tables not found or connection issue, attempting initialization..."
+        )
+    print("2. Initializing/Updating Tables...")
     if await DatabaseService.initialize_tables():
         print("   ✅ Tables Initialized")
     else:
         print("   ❌ Failed to initialize tables")
-        return
-    print("2. Checking Connection...")
-    if await DatabaseService.check_connection():
-        print("   ✅ Connection Successful")
-    else:
-        print("   ❌ Connection Failed")
         return
     print("3. Seeding Data...")
     await seed_database()
@@ -29,7 +30,7 @@ async def verify():
     if len(products) > 0:
         print(f"   First product: {products[0]['name']}")
     print("""
-🎉 Database configuration fixed and verified!""")
+🎉 Database configuration verified!""")
 
 
 if __name__ == "__main__":

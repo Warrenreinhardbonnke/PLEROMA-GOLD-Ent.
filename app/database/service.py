@@ -11,7 +11,6 @@ class DatabaseService:
         """Initialize database tables via raw SQL."""
         try:
             async with rx.asession() as session:
-                await session.execute(text("PRAGMA foreign_keys = ON;"))
                 statements = CREATE_TABLES_SQL.split(";")
                 for stmt in statements:
                     if stmt.strip():
@@ -20,9 +19,7 @@ class DatabaseService:
             logging.info("Database tables initialized.")
             return True
         except Exception as e:
-            logging.exception(
-                f"Failed to initialize tables. Ensure 'db_url' in rxconfig.py is set to 'sqlite:///reflex.db' and not using Postgres env vars. Error: {e}"
-            )
+            logging.exception(f"Failed to initialize tables. Error: {e}")
             return False
 
     @staticmethod
@@ -38,9 +35,7 @@ class DatabaseService:
                 )
                 return result.fetchone() is not None
         except Exception as e:
-            logging.exception(
-                f"Database connection check failed. Verify 'db_url' in rxconfig.py is 'sqlite:///reflex.db'. Error: {e}"
-            )
+            logging.exception(f"Database connection check failed. Error: {e}")
             return False
 
     @staticmethod

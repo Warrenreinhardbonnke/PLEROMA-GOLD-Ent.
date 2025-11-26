@@ -1,7 +1,7 @@
 CREATE_TABLES_SQL = """
 -- Products Table
 CREATE TABLE IF NOT EXISTS products (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id INTEGER PRIMARY KEY,
     name TEXT NOT NULL,
     price INTEGER NOT NULL,
     image TEXT,
@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS products (
 
 -- Customers Table
 CREATE TABLE IF NOT EXISTS customers (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id INTEGER PRIMARY KEY,
     email TEXT UNIQUE NOT NULL,
     full_name TEXT,
     phone TEXT,
@@ -41,7 +41,7 @@ CREATE TABLE IF NOT EXISTS orders (
 
 -- Order Items Table
 CREATE TABLE IF NOT EXISTS order_items (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id INTEGER PRIMARY KEY,
     order_id TEXT REFERENCES orders(id) ON DELETE CASCADE,
     product_id INTEGER REFERENCES products(id),
     product_name TEXT,
@@ -52,7 +52,7 @@ CREATE TABLE IF NOT EXISTS order_items (
 
 -- Cart Items Table
 CREATE TABLE IF NOT EXISTS cart_items (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id INTEGER PRIMARY KEY,
     user_id TEXT NOT NULL,
     product_id INTEGER REFERENCES products(id) ON DELETE CASCADE,
     quantity INTEGER DEFAULT 1,
@@ -61,7 +61,7 @@ CREATE TABLE IF NOT EXISTS cart_items (
 
 -- Wishlist Items Table
 CREATE TABLE IF NOT EXISTS wishlist_items (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id INTEGER PRIMARY KEY,
     user_id TEXT NOT NULL,
     product_id INTEGER REFERENCES products(id) ON DELETE CASCADE,
     UNIQUE(user_id, product_id)
