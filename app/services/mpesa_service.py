@@ -12,24 +12,30 @@ class MpesaService:
 
     @classmethod
     def get_access_token(cls) -> Optional[str]:
-        if cls._access_token and datetime.now().timestamp() < cls._token_expiry:
+        current_time = datetime.now().timestamp()
+        if cls._access_token and current_time < cls._token_expiry:
             return cls._access_token
         url = f"{MpesaConfig.get_base_url()}/oauth/v1/generate?grant_type=client_credentials"
         try:
+            if not MpesaConfig.CONSUMER_KEY or not MpesaConfig.CONSUMER_SECRET:
+                logging.error("M-Pesa Consumer Key or Secret is missing")
+                return None
             auth = base64.b64encode(
                 f"{MpesaConfig.CONSUMER_KEY}:{MpesaConfig.CONSUMER_SECRET}".encode()
             ).decode()
             headers = {"Authorization": f"Basic {auth}"}
-            response = requests.get(url, headers=headers)
+            response = requests.get(url, headers=headers, timeout=30)
             response.raise_for_status()
             data = response.json()
             cls._access_token = data["access_token"]
             cls._token_expiry = (
-                datetime.now().timestamp() + int(data["expires_in"]) - 60
+                datetime.now().timestamp() + int(data.get("expires_in", 3600)) - 60
             )
             return cls._access_token
         except Exception as e:
             logging.exception(f"Failed to get M-Pesa access token: {e}")
+            if hasattr(e, "response") and e.response is not None:
+                logging.error(f"M-Pesa Auth Response: {e.response.text}")
             return None
 
     @classmethod
@@ -48,13 +54,16 @@ class MpesaService:
             return None
         token = cls.get_access_token()
         if not token:
+            logging.error("Failed to obtain M-Pesa access token for STK push.")
             return None
         password, timestamp = cls.get_password()
-        formatted_phone = phone
-        if phone.startswith("0"):
-            formatted_phone = "254" + phone[1:]
-        elif phone.startswith("+"):
-            formatted_phone = phone[1:]
+        formatted_phone = phone.replace(" ", "").strip()
+        if formatted_phone.startswith("+"):
+            formatted_phone = formatted_phone[1:]
+        if formatted_phone.startswith("0"):
+            formatted_phone = "254" + formatted_phone[1:]
+        elif not formatted_phone.startswith("254") and len(formatted_phone) == 9:
+            formatted_phone = "254" + formatted_phone
         transaction_type = MpesaConfig.get_transaction_type()
         payload = {
             "BusinessShortCode": MpesaConfig.SHORTCODE,
@@ -75,11 +84,11 @@ class MpesaService:
             "Content-Type": "application/json",
         }
         try:
-            response = requests.post(url, json=payload, headers=headers)
+            response = requests.post(url, json=payload, headers=headers, timeout=30)
             response.raise_for_status()
             return response.json()
         except Exception as e:
-            logging.exception(f"M-Pesa STK Push failed: {e}")
+            logging.exception(f"M-Pesa STK Push failed for order {order_id}: {e}")
             if hasattr(e, "response") and e.response is not None:
                 logging.error(f"M-Pesa Error Response: {e.response.text}")
             return None

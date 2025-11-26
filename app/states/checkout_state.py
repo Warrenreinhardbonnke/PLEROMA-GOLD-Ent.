@@ -17,6 +17,7 @@ class CheckoutState(rx.State):
     email_error: str = ""
     phone_error: str = ""
     address_error: str = ""
+    mpesa_phone_error: str = ""
     is_processing_payment: bool = False
 
     @rx.var
@@ -71,11 +72,15 @@ class CheckoutState(rx.State):
             return
         if self.payment_method == "M-Pesa":
             if not self.mpesa_phone:
+                self.mpesa_phone_error = "Please enter M-Pesa phone number"
                 yield rx.toast.error("Please enter M-Pesa phone number")
                 return
-            if not re.match("^(?:254|\\+254|0)?(?:(?:7|1)\\d{8})$", self.mpesa_phone):
+            clean_phone = self.mpesa_phone.replace(" ", "").strip()
+            if not re.match("^(?:254|\\+254|0)?(?:(?:7|1)\\d{8})$", clean_phone):
+                self.mpesa_phone_error = "Invalid M-Pesa phone number format"
                 yield rx.toast.error("Invalid M-Pesa phone number format")
                 return
+            self.mpesa_phone = clean_phone
         self.is_processing_payment = True
         yield
         import random
