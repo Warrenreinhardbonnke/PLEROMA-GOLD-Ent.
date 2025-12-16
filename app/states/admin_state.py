@@ -1,5 +1,6 @@
 import reflex as rx
 from typing import TypedDict
+from app.database.service import DatabaseService
 
 
 class MonthlySales(TypedDict):
@@ -14,21 +15,21 @@ class CategoryStat(TypedDict):
     color: str
 
 
-from app.database.service import DatabaseService
-
-
 class AdminState(rx.State):
     total_revenue: int = 0
     total_orders: int = 0
     total_customers: int = 0
     growth_rate: int = 12
 
-    @rx.event
+    @rx.event(background=True)
     async def on_load(self):
+        async with self:
+            pass
         stats = await DatabaseService.get_dashboard_stats()
-        self.total_revenue = int(stats.get("revenue", 0))
-        self.total_orders = int(stats.get("orders", 0))
-        self.total_customers = int(stats.get("customers", 0))
+        async with self:
+            self.total_revenue = int(stats.get("revenue", 0))
+            self.total_orders = int(stats.get("orders", 0))
+            self.total_customers = int(stats.get("customers", 0))
 
     sales_data: list[MonthlySales] = [
         {"name": "Jan", "sales": 40, "revenue": 45000},
