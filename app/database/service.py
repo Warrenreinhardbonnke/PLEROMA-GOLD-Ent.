@@ -13,7 +13,9 @@ class DatabaseService:
                 await session.execute(text("SELECT 1"))
                 return True
         except Exception as e:
-            logging.exception(f"Database connection check failed. Error: {e}")
+            logging.exception(
+                f"Database connection check failed (this is expected on first run): {e}"
+            )
             return False
 
     @staticmethod
@@ -25,7 +27,9 @@ class DatabaseService:
                 )
                 return [dict(row._mapping) for row in result.fetchall()]
         except Exception as e:
-            logging.exception(f"DB Error fetching products: {e}")
+            logging.exception(
+                f"DB Error fetching products (falling back to sample data): {e}"
+            )
             from app.data import products_data
 
             return products_data
@@ -40,7 +44,9 @@ class DatabaseService:
                 row = result.fetchone()
                 return dict(row._mapping) if row else None
         except Exception as e:
-            logging.exception(f"DB Error fetching product {product_id}: {e}")
+            logging.exception(
+                f"DB Error fetching product {product_id} (falling back to sample data): {e}"
+            )
             from app.data import products_data
 
             for p in products_data:
@@ -139,7 +145,7 @@ class DatabaseService:
                     "customers": customers_count,
                 }
         except Exception as e:
-            logging.exception(f"Error fetching stats: {e}")
+            logging.exception(f"Error fetching stats (returning defaults): {e}")
             return {"revenue": 0, "orders": 0, "customers": 0}
 
     @staticmethod
@@ -154,6 +160,7 @@ class DatabaseService:
                 for statement in statements:
                     await session.execute(text(statement))
                 await session.commit()
+                logging.info("Database tables initialized successfully.")
                 return True
         except Exception as e:
             logging.exception(f"Error initializing tables: {e}")
