@@ -10,12 +10,12 @@ class DatabaseService:
     async def initialize_tables():
         """Initialize database tables via raw SQL."""
         try:
-            with rx.session() as session:
+            async with rx.asession() as session:
                 statements = CREATE_TABLES_SQL.split(";")
                 for stmt in statements:
                     if stmt.strip():
-                        session.execute(text(stmt))
-                session.commit()
+                        await session.execute(text(stmt))
+                await session.commit()
             logging.info("Database tables initialized.")
             return True
         except Exception as e:
@@ -26,14 +26,15 @@ class DatabaseService:
     async def check_connection() -> bool:
         """Check if database connection is valid and tables exist."""
         try:
-            with rx.session() as session:
-                session.execute(text("SELECT 1"))
-                result = session.execute(
+            async with rx.asession() as session:
+                await session.execute(text("SELECT 1"))
+                result = await session.execute(
                     text(
-                        "SELECT name FROM sqlite_master WHERE type='table' AND name='products'"
+                        "SELECT table_name FROM information_schema.tables WHERE table_name='products'"
                     )
                 )
-                return result.fetchone() is not None
+                row = result.fetchone()
+                return row is not None
         except Exception as e:
             logging.exception(f"Database connection check failed. Error: {e}")
             return False
@@ -41,8 +42,10 @@ class DatabaseService:
     @staticmethod
     async def get_all_products() -> list[dict]:
         try:
-            with rx.session() as session:
-                result = session.execute(text("SELECT * FROM products ORDER BY id"))
+            async with rx.asession() as session:
+                result = await session.execute(
+                    text("SELECT * FROM products ORDER BY id")
+                )
                 return [dict(row._mapping) for row in result.fetchall()]
         except Exception as e:
             logging.exception(f"DB Error fetching products: {e}")
@@ -53,8 +56,8 @@ class DatabaseService:
     @staticmethod
     async def get_product_by_id(product_id: int) -> Optional[dict]:
         try:
-            with rx.session() as session:
-                result = session.execute(
+            async with rx.asession() as session:
+                result = await session.execute(
                     text("SELECT * FROM products WHERE id = :id"), {"id": product_id}
                 )
                 row = result.fetchone()
@@ -71,14 +74,14 @@ class DatabaseService:
     @staticmethod
     async def create_product(product_data: dict) -> Optional[dict]:
         try:
-            with rx.session() as session:
+            async with rx.asession() as session:
                 columns = ", ".join(product_data.keys())
                 placeholders = ", ".join((f":{k}" for k in product_data.keys()))
                 query = text(
                     f"INSERT INTO products ({columns}) VALUES ({placeholders}) RETURNING *"
                 )
-                result = session.execute(query, product_data)
-                session.commit()
+                result = await session.execute(query, product_data)
+                await session.commit()
                 row = result.fetchone()
                 return dict(row._mapping) if row else None
         except Exception as e:
@@ -92,14 +95,14 @@ class DatabaseService:
                 return await DatabaseService.get_product_by_id(product_id)
             set_clause = ", ".join((f"{k} = :{k}" for k in updates.keys()))
             params = {**updates, "id": product_id}
-            with rx.session() as session:
-                result = session.execute(
+            async with rx.asession() as session:
+                result = await session.execute(
                     text(
                         f"UPDATE products SET {set_clause} WHERE id = :id RETURNING *"
                     ),
                     params,
                 )
-                session.commit()
+                await session.commit()
                 row = result.fetchone()
                 return dict(row._mapping) if row else None
         except Exception as e:
@@ -109,11 +112,11 @@ class DatabaseService:
     @staticmethod
     async def delete_product(product_id: int) -> bool:
         try:
-            with rx.session() as session:
-                session.execute(
+            async with rx.asession() as session:
+                await session.execute(
                     text("DELETE FROM products WHERE id = :id"), {"id": product_id}
                 )
-                session.commit()
+                await session.commit()
             return True
         except Exception as e:
             logging.exception(f"Error deleting product {product_id}: {e}")
@@ -122,8 +125,8 @@ class DatabaseService:
     @staticmethod
     async def get_customer_by_email(email: str) -> Optional[dict]:
         try:
-            with rx.session() as session:
-                result = session.execute(
+            async with rx.asession() as session:
+                result = await session.execute(
                     text("SELECT * FROM customers WHERE email = :email"),
                     {"email": email},
                 )
@@ -136,16 +139,16 @@ class DatabaseService:
     @staticmethod
     async def create_customer(customer_data: dict) -> Optional[dict]:
         try:
-            with rx.session() as session:
+            async with rx.asession() as session:
                 columns = ", ".join(customer_data.keys())
                 placeholders = ", ".join((f":{k}" for k in customer_data.keys()))
-                result = session.execute(
+                result = await session.execute(
                     text(
                         f"INSERT INTO customers ({columns}) VALUES ({placeholders}) RETURNING *"
                     ),
                     customer_data,
                 )
-                session.commit()
+                await session.commit()
                 row = result.fetchone()
                 return dict(row._mapping) if row else None
         except Exception as e:
@@ -155,10 +158,10 @@ class DatabaseService:
     @staticmethod
     async def create_order(order_data: dict, items: list[dict]) -> Optional[dict]:
         try:
-            with rx.session() as session:
+            async with rx.asession() as session:
                 columns = ", ".join(order_data.keys())
                 placeholders = ", ".join((f":{k}" for k in order_data.keys()))
-                order_res = session.execute(
+                order_res = await session.execute(
                     text(
                         f"INSERT INTO orders ({columns}) VALUES ({placeholders}) RETURNING *"
                     ),
@@ -179,11 +182,11 @@ class DatabaseService:
                         }
                         cols = ", ".join(item_data.keys())
                         vals = ", ".join((f":{k}" for k in item_data.keys()))
-                        session.execute(
+                        await session.execute(
                             text(f"INSERT INTO order_items ({cols}) VALUES ({vals})"),
                             item_data,
                         )
-                session.commit()
+                await session.commit()
                 return order
         except Exception as e:
             logging.exception(f"Failed to create order in DB: {e}")
@@ -192,8 +195,8 @@ class DatabaseService:
     @staticmethod
     async def get_order_items(order_id: str) -> list[dict]:
         try:
-            with rx.session() as session:
-                result = session.execute(
+            async with rx.asession() as session:
+                result = await session.execute(
                     text("SELECT * FROM order_items WHERE order_id = :order_id"),
                     {"order_id": order_id},
                 )
@@ -205,8 +208,8 @@ class DatabaseService:
     @staticmethod
     async def get_orders_by_user(user_email: str) -> list[dict]:
         try:
-            with rx.session() as session:
-                orders_res = session.execute(
+            async with rx.asession() as session:
+                orders_res = await session.execute(
                     text(
                         "SELECT * FROM orders WHERE customer_email = :email ORDER BY created_at DESC"
                     ),
@@ -214,7 +217,7 @@ class DatabaseService:
                 )
                 orders = [dict(row._mapping) for row in orders_res.fetchall()]
                 for order in orders:
-                    items_res = session.execute(
+                    items_res = await session.execute(
                         text("SELECT * FROM order_items WHERE order_id = :oid"),
                         {"oid": order["id"]},
                     )
@@ -227,13 +230,13 @@ class DatabaseService:
     @staticmethod
     async def get_all_orders() -> list[dict]:
         try:
-            with rx.session() as session:
-                orders_res = session.execute(
+            async with rx.asession() as session:
+                orders_res = await session.execute(
                     text("SELECT * FROM orders ORDER BY created_at DESC")
                 )
                 orders = [dict(row._mapping) for row in orders_res.fetchall()]
                 for order in orders:
-                    items_res = session.execute(
+                    items_res = await session.execute(
                         text("SELECT * FROM order_items WHERE order_id = :oid"),
                         {"oid": order["id"]},
                     )
@@ -251,12 +254,12 @@ class DatabaseService:
     @staticmethod
     async def update_order_status(order_id: str, status: str) -> bool:
         try:
-            with rx.session() as session:
-                session.execute(
+            async with rx.asession() as session:
+                await session.execute(
                     text("UPDATE orders SET status = :status WHERE id = :id"),
                     {"status": status, "id": order_id},
                 )
-                session.commit()
+                await session.commit()
             return True
         except Exception as e:
             logging.exception(f"Error updating order {order_id}: {e}")
@@ -269,14 +272,14 @@ class DatabaseService:
                 return True
             set_clause = ", ".join((f"{k} = :{k}" for k in updates.keys()))
             params = {**updates, "cid": checkout_id}
-            with rx.session() as session:
-                session.execute(
+            async with rx.asession() as session:
+                await session.execute(
                     text(
                         f"UPDATE orders SET {set_clause} WHERE checkout_request_id = :cid"
                     ),
                     params,
                 )
-                session.commit()
+                await session.commit()
             return True
         except Exception as e:
             logging.exception(f"Error updating order by checkout_id {checkout_id}: {e}")
@@ -285,12 +288,14 @@ class DatabaseService:
     @staticmethod
     async def get_dashboard_stats() -> dict:
         try:
-            with rx.session() as session:
-                orders_res = session.execute(text("SELECT count(*) FROM orders"))
+            async with rx.asession() as session:
+                orders_res = await session.execute(text("SELECT count(*) FROM orders"))
                 orders_count = orders_res.scalar() or 0
-                cust_res = session.execute(text("SELECT count(*) FROM customers"))
+                cust_res = await session.execute(text("SELECT count(*) FROM customers"))
                 customers_count = cust_res.scalar() or 0
-                rev_res = session.execute(text("SELECT sum(total_amount) FROM orders"))
+                rev_res = await session.execute(
+                    text("SELECT sum(total_amount) FROM orders")
+                )
                 total_revenue = rev_res.scalar() or 0
                 return {
                     "revenue": total_revenue,

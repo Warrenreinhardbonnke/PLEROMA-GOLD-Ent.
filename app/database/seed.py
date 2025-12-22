@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import os
 from app.database.service import DatabaseService
 from app.data import products_data
 
@@ -7,6 +8,10 @@ from app.data import products_data
 async def seed_database():
     """Seed the database with initial data if empty."""
     print("Initializing Database...")
+    if not os.getenv("SUPABASE_URL"):
+        logging.warning(
+            "SUPABASE_URL not found in environment. Database connection may fail if not using local fallback."
+        )
     await DatabaseService.initialize_tables()
     print("Checking database connection...")
     if not await DatabaseService.check_connection():

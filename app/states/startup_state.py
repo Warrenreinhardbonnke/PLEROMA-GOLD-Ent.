@@ -17,7 +17,6 @@ class StartupState(rx.State):
             return
         try:
             logging.info("Starting application initialization...")
-            await DatabaseService.initialize_tables()
             await seed_database()
             self._is_initialized = True
             logging.info("Application initialized successfully (DB + Seed).")
