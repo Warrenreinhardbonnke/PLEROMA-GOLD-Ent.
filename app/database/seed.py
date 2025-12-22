@@ -6,20 +6,12 @@ from app.data import products_data
 
 async def seed_database():
     """Seed the database with initial data if empty."""
-    print("Initializing SQLite Database...")
-    init_result = await DatabaseService.initialize_tables()
-    if not init_result:
-        print(
-            "⚠️  Table initialization returned False - this may be normal if tables already exist."
-        )
-    else:
-        print("✅ Database tables initialized.")
+    print("Initializing Database...")
+    await DatabaseService.initialize_tables()
     print("Checking database connection...")
-    connection_ok = await DatabaseService.check_connection()
-    if not connection_ok:
-        print(
-            "⚠️  Database connection check returned False - attempting to continue anyway."
-        )
+    if not await DatabaseService.check_connection():
+        print("❌ Database check failed after initialization attempt.")
+        return
     print("Starting database seed...")
     try:
         existing_products = await DatabaseService.get_all_products()
@@ -51,11 +43,9 @@ async def seed_database():
                     "role": "admin",
                 }
             )
-        print("✅ Database seed completed successfully!")
+        print("Database seed completed successfully!")
     except Exception as e:
-        logging.exception(
-            f"⚠️  Database seed encountered an issue (app will use fallback data): {e}"
-        )
+        logging.exception(f"❌ Failed to seed database: {e}")
 
 
 if __name__ == "__main__":

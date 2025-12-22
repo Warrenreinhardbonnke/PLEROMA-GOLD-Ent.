@@ -3,6 +3,7 @@ import logging
 from typing import TypedDict
 from app.data import products_data
 from app.database.service import DatabaseService
+from app.database.seed import seed_database
 
 
 class Product(TypedDict):
@@ -24,16 +25,13 @@ class ProductState(rx.State):
     selected_size: str = "250g"
     size_options: list[str] = ["250g", "500g", "1kg"]
 
-    @rx.event(background=True)
+    @rx.event
     async def on_load(self):
-        """Fetch products from database."""
-        async with self:
-            pass
+        """Initialize DB and fetch products."""
         try:
             db_products = await DatabaseService.get_all_products()
-            async with self:
-                if db_products:
-                    self.products = db_products
+            if db_products:
+                self.products = db_products
         except Exception as e:
             logging.exception(f"Failed to load products from DB: {e}")
 

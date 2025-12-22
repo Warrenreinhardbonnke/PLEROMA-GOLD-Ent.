@@ -1,6 +1,5 @@
 import reflex as rx
 from typing import TypedDict
-from app.database.service import DatabaseService
 
 
 class AdminProduct(TypedDict):
@@ -13,18 +12,18 @@ class AdminProduct(TypedDict):
     image: str
 
 
+from app.database.service import DatabaseService
+
+
 class AdminProductState(rx.State):
     search_query: str = ""
     products: list[AdminProduct] = []
 
-    @rx.event(background=True)
+    @rx.event
     async def on_load(self):
-        async with self:
-            pass
         db_products = await DatabaseService.get_all_products()
-        async with self:
-            if db_products:
-                self.products = db_products
+        if db_products:
+            self.products = db_products
 
     @rx.var
     def filtered_products(self) -> list[AdminProduct]:
@@ -42,16 +41,21 @@ class AdminProductState(rx.State):
         self.search_query = query
 
     @rx.event
-    def delete_product(self, product_id: int):
-        self.products = [p for p in self.products if p["id"] != product_id]
-        return rx.toast.info("Product removed from view")
+    async def delete_product(self, product_id: int):
+        if await DatabaseService.delete_product(product_id):
+            self.products = [p for p in self.products if p["id"] != product_id]
+            return rx.toast.info("Product deleted successfully")
+        return rx.toast.error("Failed to delete product")
 
     @rx.event
-    def toggle_stock_status(self, product_id: int):
+    async def toggle_stock_status(self, product_id: int):
         for p in self.products:
             if p["id"] == product_id:
                 new_stock = 0 if p["stock"] > 0 else 50
                 new_status = "Out of Stock" if new_stock == 0 else "In Stock"
+                await DatabaseService.update_product(
+                    product_id, {"stock": new_stock, "status": new_status}
+                )
                 p["stock"] = new_stock
                 p["status"] = new_status
         return rx.toast.success("Stock status updated")
