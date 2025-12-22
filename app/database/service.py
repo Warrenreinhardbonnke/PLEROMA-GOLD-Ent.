@@ -30,7 +30,7 @@ class DatabaseService:
                 session.execute(text("SELECT 1"))
                 result = session.execute(
                     text(
-                        "SELECT table_name FROM information_schema.tables WHERE table_name = 'products'"
+                        "SELECT name FROM sqlite_master WHERE type='table' AND name='products'"
                     )
                 )
                 return result.fetchone() is not None
